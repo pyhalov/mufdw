@@ -1,0 +1,37 @@
+CREATE EXTENSION mufdw;
+CREATE SERVER loopback FOREIGN DATA WRAPPER mufdw;
+CREATE USER MAPPING FOR PUBLIC SERVER loopback ;
+CREATE TABLE players(id int primary key, nick text, score int);
+INSERT INTO players SELECT i, 'nick_'||i, i*10 from generate_series(1,10) i;
+-- Error cases
+CREATE FOREIGN TABLE f_players (id int, nick text, score int) server loopback;
+ERROR:  both table_name and table_schema options should be set
+CREATE FOREIGN TABLE f_players (id int, nick text, score int) server loopback options (table_name 'players');
+ERROR:  both table_name and table_schema options should be set
+CREATE FOREIGN TABLE f_players (id int, nick text, score int) server loopback options (schema_name 'public');
+ERROR:  both table_name and table_schema options should be set
+CREATE FOREIGN TABLE f_players (id int, nick text, score int) server loopback options (table_name 'players', schema_name 'public', blah 'foo');
+ERROR:  option "blah" is unknown
+-- Simple usage
+CREATE FOREIGN TABLE f_players (id int, nick text, score int) server loopback options (table_name 'players', schema_name 'public');
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM f_players WHERE id > 5 ORDER BY id;
+               QUERY PLAN               
+----------------------------------------
+ Sort
+   Output: id, nick, score
+   Sort Key: f_players.id
+   ->  Foreign Scan on public.f_players
+         Output: id, nick, score
+         Filter: (f_players.id > 5)
+(6 rows)
+
+SELECT * FROM f_players WHERE id > 5 ORDER BY id;
+ id |  nick   | score 
+----+---------+-------
+  6 | nick_6  |    60
+  7 | nick_7  |    70
+  8 | nick_8  |    80
+  9 | nick_9  |    90
+ 10 | nick_10 |   100
+(5 rows)
+

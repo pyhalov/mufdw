@@ -1,0 +1,5 @@
+# mufdw extension
+comment = 'test minimal foreign-data wrapper'
+default_version = '0.1'
+module_pathname = '$libdir/mufdw'
+relocatable = true
